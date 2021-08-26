@@ -324,7 +324,7 @@ class PetkitDevice:
     def food_state_attrs(self):
         return {
             'state': self.status.get('food'),
-            'desc': 'normal' if self.food_state else 'few',
+            'desc': 'normal' if not self.food_state else 'few',
         }
 
     @property
