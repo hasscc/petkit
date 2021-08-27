@@ -14,6 +14,7 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
 import homeassistant.helpers.config_validation as cv
+from aiohttp.client_exceptions import ClientConnectorError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -155,7 +156,7 @@ class PetkitAccount:
         try:
             req = await self.http.request(method, url, **kws)
             return await req.json() or {}
-        except TypeError as exc:
+        except ClientConnectorError as exc:
             _LOGGER.error('Request Petkit api failed: %s', [method, url, pms, exc])
         return {}
 
@@ -201,6 +202,18 @@ class PetkitAccount:
             await self.async_login()
         return old
 
+    async def get_devices(self):
+        api = 'discovery/device_roster'
+        rsp = await self.request(api)
+        eno = rsp.get('error', {}).get('code', 0)
+        if eno == 5:
+            if await self.async_login():
+                rsp = await self.request(api)
+        dls = rsp.get('result', {}).get(CONF_DEVICES) or []
+        if not dls:
+            _LOGGER.warning('Got petkit devices for %s failed: %s', self.username, rsp)
+        return dls
+
 
 class DevicesCoordinator(DataUpdateCoordinator):
     def __init__(self, account: PetkitAccount):
@@ -214,15 +227,7 @@ class DevicesCoordinator(DataUpdateCoordinator):
         self._subs = {}
 
     async def _async_update_data(self):
-        api = 'discovery/device_roster'
-        rsp = await self.account.request(api)
-        eno = rsp.get('error', {}).get('code', 0)
-        if eno == 5:
-            if await self.account.async_login():
-                rsp = await self.account.request(api)
-        dls = rsp.get('result', {}).get(CONF_DEVICES) or []
-        if not dls:
-            _LOGGER.warning('Got petkit devices for %s failed: %s', self.account.username, rsp)
+        dls = await self.account.get_devices()
         for dvc in dls:
             dat = dvc.get('data') or {}
             did = dat.get('id')
@@ -236,6 +241,7 @@ class DevicesCoordinator(DataUpdateCoordinator):
             else:
                 dvc = PetkitDevice(dat, self)
                 self.hass.data[DOMAIN][CONF_DEVICES][did] = dvc
+            await dvc.update_device_detail()
             for d in SUPPORTED_DOMAINS:
                 await self.update_hass_entities(d, dvc)
         return self.hass.data[DOMAIN][CONF_DEVICES]
@@ -272,6 +278,7 @@ class PetkitDevice:
         self.account = coordinator.account
         self.listeners = {}
         self.update_data(dat)
+        self.detail = {}
 
     def update_data(self, dat: dict):
         self.data = dat
@@ -334,6 +341,24 @@ class PetkitDevice:
         }
 
     @property
+    def feed_times(self):
+        return self.feed_state_attrs().get('times', 0)
+
+    def feed_state_attrs(self):
+        return self.detail.get('state', {}).get('feedState') or {}
+
+    @property
+    def feeding(self):
+        return False
+
+    def feeding_attrs(self):
+        return {
+            'desc': self.data.get('desc'),
+            'error': self.status.get('errorMsg'),
+            **self.feed_state_attrs(),
+        }
+
+    @property
     def hass_sensor(self):
         return {
             'state': {
@@ -341,6 +366,10 @@ class PetkitDevice:
             },
             'desiccant': {
                 'unit': 'days',
+            },
+            'feed_times': {
+                'unit': 'times',
+                'state_attrs': self.feed_state_attrs,
             },
         }
 
@@ -364,11 +393,22 @@ class PetkitDevice:
             },
         }
 
-    def feeding_attrs(self):
-        return {
-            'desc': self.data.get('desc'),
-            'error': self.status.get('errorMsg'),
+    async def update_device_detail(self):
+        api = f'{self.device_type}/device_detail'
+        pms = {
+            'id': self.device_id,
         }
+        rsp = None
+        try:
+            rsp = await self.account.request(api, pms)
+            rdt = rsp.get('result') or {}
+        except (TypeError, ValueError) as exc:
+            rdt = {}
+            _LOGGER.error('Got petkit device detail for %s failed: %s', self.device_name, exc)
+        if not rdt:
+            _LOGGER.warning('Got petkit device detail for %s failed: %s', self.device_name, rsp)
+        self.detail = rdt
+        return rdt
 
     async def feeding_now(self, amount=1, **kwargs):
         typ = self.device_type
@@ -384,6 +424,11 @@ class PetkitDevice:
             'amount': round(amount * 10),
         }
         rdt = await self.account.request(api, pms)
+        eno = rdt.get('error', {}).get('code', 0)
+        if eno:
+            _LOGGER.error('Petkit feeding failed: %s', rdt)
+            return False
+        await self.update_device_detail()
         _LOGGER.info('Petkit feeding now: %s', rdt)
         return rdt
 
@@ -408,7 +453,7 @@ class PetkitEntity(CoordinatorEntity):
             'name': device.data.get('name'),
             'model': device.data.get('type'),
             'manufacturer': 'Petkit',
-            'sw_version': None,
+            'sw_version': device.detail.get('firmware'),
         }
 
     async def async_added_to_hass(self):
