@@ -37,6 +37,7 @@ ACCOUNT_SCHEMA = vol.Schema(
         vol.Optional(CONF_API_BASE, default=DEFAULT_API_BASE): cv.string,
         vol.Optional(CONF_USERNAME): cv.string,
         vol.Optional(CONF_PASSWORD): cv.string,
+        vol.Optional(CONF_SCAN_INTERVAL, default=SCAN_INTERVAL): cv.time_period,
     },
     extra=vol.ALLOW_EXTRA,
 )
@@ -101,6 +102,9 @@ class PetkitAccount:
         self.hass = hass
         self.http = aiohttp_client.async_create_clientsession(hass, auto_cleanup=False)
 
+    def get_config(self, key, default=None):
+        return self._config.get(key, self.hass.data[DOMAIN]['config'].get(key, default))
+
     @property
     def username(self):
         return self._config.get(CONF_USERNAME)
@@ -120,10 +124,12 @@ class PetkitAccount:
     def token(self):
         return self._config.get(CONF_TOKEN) or ''
 
+    @property
+    def update_interval(self):
+        return self.get_config(CONF_SCAN_INTERVAL) or SCAN_INTERVAL
+
     def api_url(self, api=''):
-        bas = self._config.get(CONF_API_BASE, '')
-        if not bas:
-            bas = self.hass.data[DOMAIN]['config'].get(CONF_API_BASE, DEFAULT_API_BASE)
+        bas = self.get_config(CONF_API_BASE) or DEFAULT_API_BASE
         return f"{bas.rstrip('/')}/{api.lstrip('/')}"
 
     async def request(self, api, pms=None, method='GET', **kwargs):
@@ -202,7 +208,7 @@ class DevicesCoordinator(DataUpdateCoordinator):
             account.hass,
             _LOGGER,
             name=f'{DOMAIN}-{account.uid}-{CONF_DEVICES}',
-            update_interval=SCAN_INTERVAL,
+            update_interval=account.update_interval,
         )
         self.account = account
         self._subs = {}

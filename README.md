@@ -21,7 +21,8 @@ petkit:
   # Single account
   username: 86-18866668888 # Username of Petkit APP (小佩宠物)
   password: abcdefghijklmn # MD5 or Raw password
-  api_base: # Optional, default is http://api.petkit.cn/6/
+  api_base:      # Optional, default is http://api.petkit.cn/6/
+  scan_interval: # Optional, default is 00:02:00
 
   # Multiple accounts
   accounts:
