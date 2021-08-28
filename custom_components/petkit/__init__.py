@@ -185,8 +185,11 @@ class PetkitAccount:
         sto = Store(self.hass, 1, fnm)
         old = await sto.async_load() or {}
         if save:
-            cfg = {**self._config}
-            cfg.pop(CONF_PASSWORD, None)
+            cfg = {
+                CONF_USERNAME: self.username,
+                CONF_USER_ID: self.uid,
+                CONF_TOKEN: self.token,
+            }
             if cfg.get(CONF_TOKEN) == old.get(CONF_TOKEN):
                 cfg['update_at'] = old.get('update_at')
             else:
