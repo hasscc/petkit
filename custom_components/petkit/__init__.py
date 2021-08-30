@@ -347,6 +347,10 @@ class PetkitDevice:
     def feed_times(self):
         return self.feed_state_attrs().get('times', 0)
 
+    @property
+    def feed_amount(self):
+        return self.feed_state_attrs().get('realAmountTotal', 0)
+
     def feed_state_attrs(self):
         return self.detail.get('state', {}).get('feedState') or {}
 
@@ -365,13 +369,21 @@ class PetkitDevice:
     def hass_sensor(self):
         return {
             'state': {
+                'icon': 'mdi:information',
                 'state_attrs': self.state_attrs,
             },
             'desiccant': {
                 'unit': 'days',
+                'icon': 'mdi:air-filter',
             },
             'feed_times': {
                 'unit': 'times',
+                'icon': 'mdi:counter',
+                'state_attrs': self.feed_state_attrs,
+            },
+            'feed_amount': {
+                'unit': 'g',
+                'icon': 'mdi:weight-gram',
                 'state_attrs': self.feed_state_attrs,
             },
         }
@@ -380,9 +392,9 @@ class PetkitDevice:
     def hass_binary_sensor(self):
         return {
             'food_state': {
-                'state_attrs': self.food_state_attrs,
                 'icon': 'mdi:food-drumstick-outline',
                 'class': 'problem',
+                'state_attrs': self.food_state_attrs,
             },
         }
 
@@ -390,9 +402,9 @@ class PetkitDevice:
     def hass_switch(self):
         return {
             'feeding': {
+                'icon': 'mdi:shaker',
                 'state_attrs': self.feeding_attrs,
                 'async_turn_on': self.feeding_now,
-                'icon': 'mdi:shaker',
             },
         }
 
