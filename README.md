@@ -19,15 +19,17 @@ wget -q -O - https://cdn.jsdelivr.net/gh/al-one/hass-xiaomi-miot/install.sh | DO
 
 petkit:
   # Single account
-  username: 86-18866668888 # Username of Petkit APP (小佩宠物)
+  username: 86-18866668888 # Username of Petkit APP (小佩宠物), important to use country code
   password: abcdefghijklmn # MD5 or Raw password
-  api_base:      # Optional, default is http://api.petkit.cn/6/
+  api_base:      # Optional, default is China server: http://api.petkit.cn/6/
   scan_interval: # Optional, default is 00:02:00
 
   # Multiple accounts
   accounts:
-    - username: 86-18866660001
+    - username: email1@domain.com
       password: password1
-    - username: 86-18866660002
+      api_base: http://api.petktasia.com/latest/ # Asia server
+    - username: email2@domain.com
       password: password2
+      api_base: http://api.petkt.com/latest/     # America server
 ```
