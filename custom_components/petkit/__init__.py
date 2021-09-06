@@ -24,6 +24,7 @@ SCAN_INTERVAL = datetime.timedelta(minutes=2)
 CONF_ACCOUNTS = 'accounts'
 CONF_API_BASE = 'api_base'
 CONF_USER_ID = 'uid'
+CONF_FEEDING_AMOUNT = 'feeding_amount'
 
 DEFAULT_API_BASE = 'http://api.petkit.cn/6/'
 
@@ -39,6 +40,7 @@ ACCOUNT_SCHEMA = vol.Schema(
         vol.Optional(CONF_USERNAME): cv.string,
         vol.Optional(CONF_PASSWORD): cv.string,
         vol.Optional(CONF_SCAN_INTERVAL, default=SCAN_INTERVAL): cv.time_period,
+        vol.Optional(CONF_FEEDING_AMOUNT, default=10): vol.Any(int, cv.entity_id),
     },
     extra=vol.ALLOW_EXTRA,
 )
@@ -358,8 +360,23 @@ class PetkitDevice:
     def feeding(self):
         return False
 
+    @property
+    def feeding_amount(self):
+        num = self.account.get_config(CONF_FEEDING_AMOUNT)
+        eid = f'{num}'
+        if 'input_number.' in eid:
+            sta = self.account.hass.states.get(eid)
+            if sta:
+                num = sta.state
+        try:
+            num = int(float(num))
+        except (TypeError, ValueError):
+            num = 10
+        return num
+
     def feeding_attrs(self):
         return {
+            'feeding_amount': self.feeding_amount,
             'desc': self.data.get('desc'),
             'error': self.status.get('errorMsg'),
             **self.feed_state_attrs(),
@@ -425,7 +442,7 @@ class PetkitDevice:
         self.detail = rdt
         return rdt
 
-    async def feeding_now(self, amount=1, **kwargs):
+    async def feeding_now(self, **kwargs):
         typ = self.device_type
         api = 'feeder/save_dailyfeed'
         if typ == 'feedermini':
@@ -436,7 +453,7 @@ class PetkitDevice:
             'deviceId': self.device_id,
             'day': datetime.datetime.today().strftime('%Y%m%d'),
             'time': -1,
-            'amount': round(amount * 10),
+            'amount': self.feeding_amount,
         }
         rdt = await self.account.request(api, pms)
         eno = rdt.get('error', {}).get('code', 0)
