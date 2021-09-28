@@ -2,11 +2,11 @@
 
 ## Installing
 
-> [Download](https://github.com/hasscc/petkit/archive/main.zip) and copy `custom_components/xiaomi_miot` folder to `custom_components` folder in your HomeAssistant config folder
+> [Download](https://github.com/hasscc/petkit/archive/main.zip) and copy `custom_components/petkit` folder to `custom_components` folder in your HomeAssistant config folder
 
 ```shell
 # Auto install via terminal shell
-wget -q -O - https://cdn.jsdelivr.net/gh/al-one/hass-xiaomi-miot/install.sh | DOMAIN=petkit REPO_PATH=hasscc/petkit bash -
+wget -q -O - https://cdn.jsdelivr.net/gh/al-one/hass-xiaomi-miot/install.sh | DOMAIN=petkit REPO_PATH=hasscc/petkit ARCHIVE_TAG=main bash -
 ```
 
 
