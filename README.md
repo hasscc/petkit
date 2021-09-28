@@ -36,3 +36,17 @@ petkit:
       api_base: http://api.petkt.com/latest/     # America server
       feeding_amount: input_number.your_feeding_amount_entity_id # min:10, step:10
 ```
+
+
+## Services
+
+#### Request Petkit API
+```yaml
+service: petkit.request_api
+target:
+  entity_id: sensor.d4_xxxxxx_state # Any sensor entity in the account
+data:
+  api: /discovery/device_roster
+  params:
+    key: val
+```

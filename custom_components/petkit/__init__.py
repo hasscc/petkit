@@ -6,6 +6,7 @@ import voluptuous as vol
 
 from homeassistant.core import HomeAssistant
 from homeassistant.const import *
+from homeassistant.components import persistent_notification
 from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.entity_component import EntityComponent
@@ -132,6 +133,8 @@ class PetkitAccount:
         return self.get_config(CONF_SCAN_INTERVAL) or SCAN_INTERVAL
 
     def api_url(self, api=''):
+        if api[:6] == 'https:' or api[:5] == 'http:':
+            return api
         bas = self.get_config(CONF_API_BASE) or DEFAULT_API_BASE
         return f"{bas.rstrip('/')}/{api.lstrip('/')}"
 
@@ -143,7 +146,7 @@ class PetkitAccount:
             'headers': {
                 'User-Agent': 'okhttp/3.12.1',
                 'X-Api-Version': '7.29.1',
-                'X-Client': 'Android(7.1.1;MP1602)',
+                'X-Client': 'Android(7.1.1;Xiaomi)',
                 'X-Session': f'{self.token}',
             },
         }
@@ -469,7 +472,7 @@ class PetkitEntity(CoordinatorEntity):
     def __init__(self, name, device: PetkitDevice, option=None):
         self.coordinator = device.coordinator
         CoordinatorEntity.__init__(self, self.coordinator)
-        self.account = self.coordinator.account,
+        self.account = self.coordinator.account
         self._name = name
         self._device = device
         self._option = option or {}
@@ -509,6 +512,18 @@ class PetkitEntity(CoordinatorEntity):
     @property
     def state(self):
         return self._attr_state
+
+    async def async_request_api(self, api, params=None, method='GET', **kwargs):
+        throw = kwargs.pop('throw', None)
+        rdt = await self.account.request(api, params, method, **kwargs)
+        if throw:
+            persistent_notification.create(
+                self.hass,
+                f'{rdt}',
+                f'Request: {api}',
+                f'{DOMAIN}-request',
+            )
+        return rdt
 
 
 class PetkitBinaryEntity(PetkitEntity):
