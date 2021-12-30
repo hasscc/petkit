@@ -33,6 +33,7 @@ SUPPORTED_DOMAINS = [
     'sensor',
     'binary_sensor',
     'switch',
+    'select',
 ]
 
 ACCOUNT_SCHEMA = vol.Schema(
