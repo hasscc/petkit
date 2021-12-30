@@ -241,13 +241,16 @@ class DevicesCoordinator(DataUpdateCoordinator):
             did = dat.get('id')
             if not did:
                 continue
-            dat['type'] = dvc.get('type') or ''
+            typ = dat['type'] = dvc.get('type') or ''
             old = self.hass.data[DOMAIN][CONF_DEVICES].get(did)
             if old:
                 dvc = old
                 dvc.update_data(dat)
             else:
-                dvc = PetkitDevice(dat, self)
+                if typ.lower() in ['t3']:
+                    dvc = LitterDevice(dat, self)
+                else:
+                    dvc = FeederDevice(dat, self)
                 self.hass.data[DOMAIN][CONF_DEVICES][did] = dvc
             await dvc.update_device_detail()
             for d in SUPPORTED_DOMAINS:
@@ -310,6 +313,10 @@ class PetkitDevice:
         return self.data.get('name', '')
 
     @property
+    def status(self):
+        return self.data.get('status') or {}
+
+    @property
     def state(self):
         sta = self.data.get('state') or 0
         dic = {
@@ -331,8 +338,41 @@ class PetkitDevice:
         }
 
     @property
-    def status(self):
-        return self.data.get('status') or {}
+    def hass_sensor(self):
+        return {
+            'state': {
+                'icon': 'mdi:information',
+                'state_attrs': self.state_attrs,
+            },
+        }
+
+    @property
+    def hass_binary_sensor(self):
+        return {}
+
+    @property
+    def hass_switch(self):
+        return {}
+
+    async def update_device_detail(self):
+        api = f'{self.device_type}/device_detail'
+        pms = {
+            'id': self.device_id,
+        }
+        rsp = None
+        try:
+            rsp = await self.account.request(api, pms)
+            rdt = rsp.get('result') or {}
+        except (TypeError, ValueError) as exc:
+            rdt = {}
+            _LOGGER.error('Got petkit device detail for %s failed: %s', self.device_name, exc)
+        if not rdt:
+            _LOGGER.warning('Got petkit device detail for %s failed: %s', self.device_name, rsp)
+        self.detail = rdt
+        return rdt
+
+
+class FeederDevice(PetkitDevice):
 
     @property
     def desiccant(self):
@@ -388,10 +428,7 @@ class PetkitDevice:
     @property
     def hass_sensor(self):
         return {
-            'state': {
-                'icon': 'mdi:information',
-                'state_attrs': self.state_attrs,
-            },
+            **super().hass_sensor,
             'desiccant': {
                 'unit': 'days',
                 'icon': 'mdi:air-filter',
@@ -411,6 +448,7 @@ class PetkitDevice:
     @property
     def hass_binary_sensor(self):
         return {
+            **super().hass_binary_sensor,
             'food_state': {
                 'icon': 'mdi:food-drumstick-outline',
                 'class': 'problem',
@@ -421,29 +459,13 @@ class PetkitDevice:
     @property
     def hass_switch(self):
         return {
+            **super().hass_switch,
             'feeding': {
                 'icon': 'mdi:shaker',
                 'state_attrs': self.feeding_attrs,
                 'async_turn_on': self.feeding_now,
             },
         }
-
-    async def update_device_detail(self):
-        api = f'{self.device_type}/device_detail'
-        pms = {
-            'id': self.device_id,
-        }
-        rsp = None
-        try:
-            rsp = await self.account.request(api, pms)
-            rdt = rsp.get('result') or {}
-        except (TypeError, ValueError) as exc:
-            rdt = {}
-            _LOGGER.error('Got petkit device detail for %s failed: %s', self.device_name, exc)
-        if not rdt:
-            _LOGGER.warning('Got petkit device detail for %s failed: %s', self.device_name, rsp)
-        self.detail = rdt
-        return rdt
 
     async def feeding_now(self, **kwargs):
         typ = self.device_type
@@ -465,6 +487,95 @@ class PetkitDevice:
             return False
         await self.update_device_detail()
         _LOGGER.info('Petkit feeding now: %s', rdt)
+        return rdt
+
+
+class LitterDevice(PetkitDevice):
+
+    @property
+    def box_full(self):
+        return self.status.get('boxFull')
+
+    @property
+    def sand_percent(self):
+        return self.status.get('sandPercent')
+
+    def sand_attrs(self):
+        return {
+            'sand_lack': self.status.get('sandLack'),
+            'sand_weight': self.status.get('sandWeight'),
+        }
+
+    @property
+    def in_times(self):
+        return self.detail.get('inTimes')
+
+    @property
+    def records(self):
+        return self.detail.get('records') or []
+
+    @property
+    def last_record(self):
+        evt = self.last_record_attrs().get('eventType') or 0
+        dic = {
+            5: 'cleaned',
+            6: 'dumped',
+            7: 'reset',
+            8: 'deodorized',
+            10: 'occupied',
+        }
+        return dic.get(evt, evt)
+
+    def last_record_attrs(self):
+        rls = self.records
+        if not rls:
+            return {}
+        lst = rls[-1] or {}
+        ctx = lst.pop('content') or {}
+        return {**lst, **ctx}
+
+    @property
+    def hass_sensor(self):
+        return {
+            **super().hass_sensor,
+            'sand_percent': {
+                'icon': 'mdi:percent-outline',
+                'state_attrs': self.sand_attrs,
+            },
+            'in_times': {
+                'icon': 'mdi:location-enter',
+            },
+            'last_record': {
+                'icon': 'mdi:history',
+                'state_attrs': self.last_record_attrs,
+            },
+        }
+
+    @property
+    def hass_binary_sensor(self):
+        return {
+            **super().hass_binary_sensor,
+            'box_full': {
+                'icon': 'mdi:tray-full',
+                'class': 'problem',
+            },
+        }
+
+    async def update_device_detail(self):
+        await super().update_device_detail()
+        api = f'{self.device_type}/getDeviceRecord'
+        pms = {
+            'deviceId': self.device_id,
+        }
+        rsp = None
+        try:
+            rsp = await self.account.request(api, pms)
+            rdt = rsp.get('result') or {}
+        except (TypeError, ValueError):
+            rdt = {}
+        if not rdt:
+            _LOGGER.warning('Got petkit device records for %s failed: %s', self.device_name, rsp)
+        self.detail['records'] = rdt
         return rdt
 
 
