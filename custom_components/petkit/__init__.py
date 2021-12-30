@@ -632,10 +632,10 @@ class LitterDevice(PetkitDevice):
             'continue': 4,
         }
 
-    async def select_action(self, act):
-        val = self.actions.get(act, 0)
-        dat = '{"%s_action":"%s"}' % (act, val)
-        return await self.control_device(type=act, kv=dat)
+    async def select_action(self, action, **kwargs):
+        val = self.actions.get(action, 0)
+        dat = '{"%s_action":"%s"}' % (action, val)
+        return await self.control_device(type=action, kv=dat)
 
     async def control_device(self, **kwargs):
         typ = self.device_type
