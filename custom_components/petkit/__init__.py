@@ -261,6 +261,7 @@ class DevicesCoordinator(DataUpdateCoordinator):
         from .sensor import PetkitSensorEntity
         from .binary_sensor import PetkitBinarySensorEntity
         from .switch import PetkitSwitchEntity
+        from .select import PetkitSelectEntity
         hdk = f'hass_{domain}'
         add = self.hass.data[DOMAIN]['add_entities'].get(domain)
         if not add or not hasattr(dvc, hdk):
@@ -276,6 +277,8 @@ class DevicesCoordinator(DataUpdateCoordinator):
                 new = PetkitBinarySensorEntity(k, dvc, cfg)
             elif add and domain == 'switch':
                 new = PetkitSwitchEntity(k, dvc, cfg)
+            elif domain == 'select':
+                new = PetkitSelectEntity(k, dvc, cfg)
             if new:
                 self._subs[key] = new
                 add([new])
@@ -493,6 +496,10 @@ class FeederDevice(PetkitDevice):
 class LitterDevice(PetkitDevice):
 
     @property
+    def power(self):
+        return not not self.status.get('power')
+
+    @property
     def box_full(self):
         return self.status.get('boxFull')
 
@@ -561,6 +568,28 @@ class LitterDevice(PetkitDevice):
             },
         }
 
+    @property
+    def hass_switch(self):
+        return {
+            **super().hass_switch,
+            'power': {
+                'icon': 'mdi:power',
+                'async_turn_on': self.turn_on,
+                'async_turn_off': self.turn_off,
+            },
+        }
+
+    @property
+    def hass_select(self):
+        return {
+            'action': {
+                'icon': 'mdi:play-box',
+                'options': list(self.actions.keys()),
+                'async_select': self.select_action,
+                'delay_update': 5,
+            },
+        }
+
     async def update_device_detail(self):
         await super().update_device_detail()
         api = f'{self.device_type}/getDeviceRecord'
@@ -576,6 +605,51 @@ class LitterDevice(PetkitDevice):
         if not rdt:
             _LOGGER.warning('Got petkit device records for %s failed: %s', self.device_name, rsp)
         self.detail['records'] = rdt
+        return rdt
+
+    async def turn_on(self):
+        return await self.set_power(True)
+
+    async def turn_off(self):
+        return await self.set_power(False)
+
+    async def set_power(self, on=True):
+        val = 1 if on else 0
+        dat = '{"power_action":"%s"}' % val
+        return await self.control_device(type='power', kv=dat)
+
+    @property
+    def action(self):
+        return None
+
+    @property
+    def actions(self):
+        return {
+            'start':    1,
+            'stop':     2,
+            'end':      3,
+            'continue': 4,
+        }
+
+    async def select_action(self, act):
+        val = self.actions.get(act, 0)
+        dat = '{"%s_action":"%s"}' % (act, val)
+        return await self.control_device(type=act, kv=dat)
+
+    async def control_device(self, **kwargs):
+        typ = self.device_type
+        api = f'{typ}/controlDevice'
+        pms = {
+            'id': self.device_id,
+            **kwargs,
+        }
+        rdt = await self.account.request(api, pms)
+        eno = rdt.get('error', {}).get('code', 0)
+        if eno:
+            _LOGGER.error('Petkit device control failed: %s', rdt)
+            return False
+        await self.update_device_detail()
+        _LOGGER.info('Petkit device control: %s', rdt)
         return rdt
 
 
