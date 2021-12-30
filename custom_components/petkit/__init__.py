@@ -538,7 +538,7 @@ class LitterDevice(PetkitDevice):
         if not rls:
             return {}
         lst = rls[-1] or {}
-        ctx = lst.pop('content') or {}
+        ctx = lst.pop('content', None) or {}
         return {**lst, **ctx}
 
     @property
