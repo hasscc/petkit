@@ -515,8 +515,27 @@ class LitterDevice(PetkitDevice):
         }
 
     @property
+    def liquid(self):
+        return self.status.get('liquid')
+
+    def liquid_attrs(self):
+        return {
+            'liquid': self.status.get('liquid'),
+            'liquid_empty': self.status.get('liquidEmpty'),
+            'liquid_lack': self.status.get('liquidLack'),
+        }
+
+    @property
     def in_times(self):
         return self.detail.get('inTimes')
+
+    @property
+    def pet_weight(self):
+        evt = self.pet_weight_attrs()
+        return evt.get('petWeight')
+
+    def pet_weight_attrs(self):
+        return self.last_record_attrs(only_event=10)
 
     @property
     def records(self):
@@ -534,11 +553,17 @@ class LitterDevice(PetkitDevice):
         }
         return dic.get(evt, evt)
 
-    def last_record_attrs(self):
+    def last_record_attrs(self, only_event=None):
         rls = self.records
         if not rls:
             return {}
         lst = rls[-1] or {}
+        if only_event:
+            rls.reverse()
+            for v in rls:
+                if only_event == v.get('eventType'):
+                    lst = v
+                    break
         ctx = lst.pop('content', None) or {}
         return {**lst, **ctx}
 
@@ -549,6 +574,14 @@ class LitterDevice(PetkitDevice):
             'sand_percent': {
                 'icon': 'mdi:percent-outline',
                 'state_attrs': self.sand_attrs,
+            },
+            'liquid': {
+                'icon': 'mdi:water-percent',
+                'state_attrs': self.liquid_attrs,
+            },
+            'pet_weight': {
+                'icon': 'mdi:weight',
+                'state_attrs': self.pet_weight_attrs,
             },
             'in_times': {
                 'icon': 'mdi:location-enter',
