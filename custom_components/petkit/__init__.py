@@ -608,10 +608,10 @@ class LitterDevice(PetkitDevice):
         self.detail['records'] = rdt
         return rdt
 
-    async def turn_on(self):
+    async def turn_on(self, **kwargs):
         return await self.set_power(True)
 
-    async def turn_off(self):
+    async def turn_off(self, **kwargs):
         return await self.set_power(False)
 
     async def set_power(self, on=True):
