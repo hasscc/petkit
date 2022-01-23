@@ -394,6 +394,11 @@ class FeederDevice(PetkitDevice):
 
     @property
     def feed_times(self):
+        if self.device_type == "d3":
+            times = self.feed_state_attrs().get('feedTimes', [])
+            return len(times)
+             
+
         return self.feed_state_attrs().get('times', 0)
 
     @property
@@ -402,6 +407,20 @@ class FeederDevice(PetkitDevice):
 
     def feed_state_attrs(self):
         return self.detail.get('state', {}).get('feedState') or {}
+
+    @property
+    def eat_amount(self):
+        return self.feed_state_attrs().get('eatAmountTotal', 0)
+
+    @property
+    def eat_times(self):
+        times = self.feed_state_attrs().get('eatTimes', [])
+        return len(times)
+
+    @property
+    def bowl_weight(self):
+        return self.status.get('weight', 0)
+
 
     @property
     def feeding(self):
@@ -431,23 +450,59 @@ class FeederDevice(PetkitDevice):
 
     @property
     def hass_sensor(self):
-        return {
-            **super().hass_sensor,
-            'desiccant': {
-                'unit': 'days',
-                'icon': 'mdi:air-filter',
-            },
-            'feed_times': {
-                'unit': 'times',
-                'icon': 'mdi:counter',
-                'state_attrs': self.feed_state_attrs,
-            },
-            'feed_amount': {
-                'unit': 'g',
-                'icon': 'mdi:weight-gram',
-                'state_attrs': self.feed_state_attrs,
-            },
-        }
+        if self.device_type == "d3":
+            return {
+                **super().hass_sensor,
+                'desiccant': {
+                    'unit': 'days',
+                    'icon': 'mdi:air-filter',
+                },
+                'feed_times': {
+                    'unit': 'times',
+                    'icon': 'mdi:counter',
+                    'state_attrs': self.feed_state_attrs,
+                },
+                'feed_amount': {
+                    'unit': 'g',
+                    'icon': 'mdi:weight-gram',
+                    'state_attrs': self.feed_state_attrs,
+                },
+                'eat_amount': {
+                    'unit': 'g',
+                    'icon': 'mdi:weight-gram',
+                    'state_attrs': self.feed_state_attrs,
+                },
+                'eat_times': {
+                    'unit': 'times',
+                    'icon': 'mdi:counter',
+                    'state_attrs': self.feed_state_attrs,
+                },
+                'bowl_weight': {
+                    'unit': 'g',
+                    'icon': 'mdi:weight-gram',
+                    'state_attrs': self.state_attrs,
+                },
+            }
+
+        else:
+            return {
+                **super().hass_sensor,
+                'desiccant': {
+                    'unit': 'days',
+                    'icon': 'mdi:air-filter',
+                },
+                'feed_times': {
+                    'unit': 'times',
+                    'icon': 'mdi:counter',
+                    'state_attrs': self.feed_state_attrs,
+                },
+                'feed_amount': {
+                    'unit': 'g',
+                    'icon': 'mdi:weight-gram',
+                    'state_attrs': self.feed_state_attrs,
+                },
+            }
+
 
     @property
     def hass_binary_sensor(self):
