@@ -215,7 +215,7 @@ class PetkitAccount:
         api = 'discovery/device_roster'
         rsp = await self.request(api)
         eno = rsp.get('error', {}).get('code', 0)
-        if eno == 5:
+        if eno in [5, 8]:
             if await self.async_login():
                 rsp = await self.request(api)
         dls = rsp.get('result', {}).get(CONF_DEVICES) or []
