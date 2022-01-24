@@ -394,11 +394,9 @@ class FeederDevice(PetkitDevice):
 
     @property
     def feed_times(self):
-        if self.device_type == "d3":
+        if self.device_type == 'd3':
             times = self.feed_state_attrs().get('feedTimes', [])
             return len(times)
-             
-
         return self.feed_state_attrs().get('times', 0)
 
     @property
@@ -420,7 +418,6 @@ class FeederDevice(PetkitDevice):
     @property
     def bowl_weight(self):
         return self.status.get('weight', 0)
-
 
     @property
     def feeding(self):
