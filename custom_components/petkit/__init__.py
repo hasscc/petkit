@@ -447,8 +447,7 @@ class FeederDevice(PetkitDevice):
 
     @property
     def hass_sensor(self):
-        if self.device_type == "d3":
-            return {
+        dat = {
                 **super().hass_sensor,
                 'desiccant': {
                     'unit': 'days',
@@ -464,42 +463,23 @@ class FeederDevice(PetkitDevice):
                     'icon': 'mdi:weight-gram',
                     'state_attrs': self.feed_state_attrs,
                 },
+            }
+        if self.device_type == 'd3':
+            dat.update({
                 'eat_amount': {
                     'unit': 'g',
                     'icon': 'mdi:weight-gram',
-                    'state_attrs': self.feed_state_attrs,
                 },
                 'eat_times': {
                     'unit': 'times',
                     'icon': 'mdi:counter',
-                    'state_attrs': self.feed_state_attrs,
                 },
                 'bowl_weight': {
                     'unit': 'g',
                     'icon': 'mdi:weight-gram',
-                    'state_attrs': self.state_attrs,
                 },
-            }
-
-        else:
-            return {
-                **super().hass_sensor,
-                'desiccant': {
-                    'unit': 'days',
-                    'icon': 'mdi:air-filter',
-                },
-                'feed_times': {
-                    'unit': 'times',
-                    'icon': 'mdi:counter',
-                    'state_attrs': self.feed_state_attrs,
-                },
-                'feed_amount': {
-                    'unit': 'g',
-                    'icon': 'mdi:weight-gram',
-                    'state_attrs': self.feed_state_attrs,
-                },
-            }
-
+            })
+        return dat
 
     @property
     def hass_binary_sensor(self):
