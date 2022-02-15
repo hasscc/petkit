@@ -15,7 +15,7 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
 import homeassistant.helpers.config_validation as cv
-from aiohttp.client_exceptions import ClientConnectorError
+from aiohttp.client_exceptions import ClientConnectorError, ContentTypeError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -159,11 +159,15 @@ class PetkitAccount:
             kws['params'] = pms
         else:
             kws['data'] = pms
+        req = None
         try:
             req = await self.http.request(method, url, **kws)
             return await req.json() or {}
-        except ClientConnectorError as exc:
-            _LOGGER.error('Request Petkit api failed: %s', [method, url, pms, exc])
+        except (ClientConnectorError, ContentTypeError) as exc:
+            lgs = [method, url, pms, exc]
+            if req:
+                lgs.extend([req.status, req.content])
+            _LOGGER.error('Request Petkit api failed: %s', lgs)
         return {}
 
     async def async_login(self):
