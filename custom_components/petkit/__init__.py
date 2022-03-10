@@ -265,6 +265,7 @@ class DevicesCoordinator(DataUpdateCoordinator):
     async def update_hass_entities(self, domain, dvc):
         from .sensor import PetkitSensorEntity
         from .binary_sensor import PetkitBinarySensorEntity
+        from .button import PetkitButtonEntity
         from .switch import PetkitSwitchEntity
         from .select import PetkitSelectEntity
         hdk = f'hass_{domain}'
@@ -280,6 +281,8 @@ class DevicesCoordinator(DataUpdateCoordinator):
                 new = PetkitSensorEntity(k, dvc, cfg)
             elif add and domain == 'binary_sensor':
                 new = PetkitBinarySensorEntity(k, dvc, cfg)
+            elif add and domain == 'button':
+                new = PetkitButtonEntity(k, dvc, cfg)
             elif add and domain == 'switch':
                 new = PetkitSwitchEntity(k, dvc, cfg)
             elif domain == 'select':
@@ -359,7 +362,15 @@ class PetkitDevice:
         return {}
 
     @property
+    def hass_button(self):
+        return {}
+
+    @property
     def hass_switch(self):
+        return {}
+
+    @property
+    def hass_select(self):
         return {}
 
     async def update_device_detail(self):
@@ -562,6 +573,10 @@ class LitterDevice(PetkitDevice):
         }
 
     @property
+    def work_mode(self):
+        return self.status.get('workState', {}).get('workMode', 0)
+
+    @property
     def in_times(self):
         return self.detail.get('inTimes')
 
@@ -639,6 +654,16 @@ class LitterDevice(PetkitDevice):
         }
 
     @property
+    def hass_button(self):
+        return {
+            **super().hass_button,
+            'power': {
+                'icon': 'mdi:broom',
+                'async_press': self.press_cleanup,
+            },
+        }
+
+    @property
     def hass_switch(self):
         return {
             **super().hass_switch,
@@ -652,6 +677,7 @@ class LitterDevice(PetkitDevice):
     @property
     def hass_select(self):
         return {
+            **super().hass_select,
             'action': {
                 'icon': 'mdi:play-box',
                 'options': list(self.actions.keys()),
@@ -685,8 +711,11 @@ class LitterDevice(PetkitDevice):
 
     async def set_power(self, on=True):
         val = 1 if on else 0
-        dat = '{"power_action":"%s"}' % val
+        dat = '{"power_action":%s}' % val
         return await self.control_device(type='power', kv=dat)
+
+    async def press_cleanup(self, **kwargs):
+        return await self.select_action('cleanup')
 
     @property
     def action(self):
@@ -695,16 +724,19 @@ class LitterDevice(PetkitDevice):
     @property
     def actions(self):
         return {
-            'start':    1,
-            'stop':     2,
-            'end':      3,
-            'continue': 4,
+            'cleanup':   ['start', 0],
+            'pause':     ['stop', self.work_mode],
+            'end':       ['end', self.work_mode],
+            'continue':  ['continue', self.work_mode],
+            'deodorize': ['start', 2],
         }
 
     async def select_action(self, action, **kwargs):
-        val = self.actions.get(action, 0)
-        dat = '{"%s_action":"%s"}' % (action, val)
-        return await self.control_device(type=action, kv=dat)
+        act, val = self.actions.get(action, [None, 0])
+        if not act:
+            return False
+        dat = '{"%s_action":%s}' % (act, val)
+        return await self.control_device(type=act, kv=dat)
 
     async def control_device(self, **kwargs):
         typ = self.device_type
