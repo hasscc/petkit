@@ -252,7 +252,9 @@ class DevicesCoordinator(DataUpdateCoordinator):
                 dvc = old
                 dvc.update_data(dat)
             else:
-                if typ.lower() in ['t3']:
+                if typ.lower() in ['p3']:
+                    dvc = FitDevice(dat, self)
+                elif typ.lower() in ['t3']:
                     dvc = LitterDevice(dat, self)
                 else:
                     dvc = FeederDevice(dat, self)
@@ -349,13 +351,24 @@ class PetkitDevice:
         }
 
     @property
+    def battery(self):
+        return self.data.get('battery')
+
+    @property
     def hass_sensor(self):
-        return {
+        dat = {
             'state': {
                 'icon': 'mdi:information',
                 'state_attrs': self.state_attrs,
             },
         }
+        if 'battery' in self.data:
+            dat.update({
+                'battery': {
+                    'class': 'battery',
+                },
+            })
+        return dat
 
     @property
     def hass_binary_sensor(self):
@@ -752,6 +765,78 @@ class LitterDevice(PetkitDevice):
             return False
         await self.update_device_detail()
         _LOGGER.info('Petkit device control: %s', rdt)
+        return rdt
+
+
+class FitDevice(PetkitDevice):
+    @property
+    def state(self):
+        return self.data.get('syncTime')
+
+    def state_attrs(self):
+        return {
+            **self.data,
+            'data24': self.detail.get('data24', []),
+        }
+
+    @property
+    def activity(self):
+        return self.activity_attrs().get('total')
+
+    def activity_attrs(self):
+        return self.detail.get('activityRecord') or {}
+
+    @property
+    def calorie(self):
+        return self.calorie_attrs().get('total')
+
+    def calorie_attrs(self):
+        return self.detail.get('calorieRecord') or {}
+
+    @property
+    def sleep(self):
+        return self.sleep_attrs().get('total')
+
+    def sleep_attrs(self):
+        return self.detail.get('sleepDetail') or {}
+
+    @property
+    def hass_sensor(self):
+        return {
+            **super().hass_sensor,
+            'state': {
+                'class': 'timestamp',
+                'state_attrs': self.state_attrs,
+            },
+            'activity': {
+                'icon': 'mdi:run',
+                'state_attrs': self.activity_attrs,
+            },
+            'calorie': {
+                'icon': 'mdi:arm-flex',
+                'state_attrs': self.calorie_attrs,
+            },
+            'sleep': {
+                'icon': 'mdi:sleep',
+                'state_attrs': self.sleep_attrs,
+            },
+        }
+
+    async def update_device_detail(self):
+        api = f'{self.device_type}/deviceAllData'
+        pms = {
+            'deviceId': self.device_id,
+            'day': datetime.datetime.today().strftime('%Y%m%d'),
+        }
+        rsp = None
+        try:
+            rsp = await self.account.request(api, pms)
+            rdt = rsp.get('result') or {}
+        except (TypeError, ValueError):
+            rdt = {}
+        if not rdt:
+            _LOGGER.warning('Got petkit device detail for %s failed: %s', self.device_name, rsp)
+        self.detail = rdt
         return rdt
 
 
