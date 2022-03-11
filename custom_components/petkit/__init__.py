@@ -685,6 +685,11 @@ class LitterDevice(PetkitDevice):
                 'async_turn_on': self.turn_on,
                 'async_turn_off': self.turn_off,
             },
+            'manual_lock': {
+                'icon': 'mdi:lock',
+                'async_turn_on': self.manual_lock_on,
+                'async_turn_off': self.manual_lock_off,
+            },
         }
 
     @property
@@ -730,9 +735,15 @@ class LitterDevice(PetkitDevice):
     async def press_cleanup(self, **kwargs):
         return await self.select_action('cleanup')
 
+    async def press_deodorize(self, **kwargs):
+        return await self.select_action('deodorize')
+
     @property
     def action(self):
-        return None
+        return {
+            0: 'cleanup',
+            2: 'deodorize',
+        }.get(self.work_mode, None)
 
     @property
     def actions(self):
@@ -751,9 +762,24 @@ class LitterDevice(PetkitDevice):
         dat = '{"%s_action":%s}' % (act, val)
         return await self.control_device(type=act, kv=dat)
 
-    async def control_device(self, **kwargs):
+    @property
+    def manual_lock(self):
+        return True if self.detail.get('settings', {}).get('manualLock') else False
+
+    async def manual_lock_on(self, **kwargs):
+        return await self.set_manual_lock(True)
+
+    async def manual_lock_off(self, **kwargs):
+        return await self.set_manual_lock(False)
+
+    async def set_manual_lock(self, on=True):
+        val = 1 if on else 0
+        dat = '{"manualLock":%s}' % val
+        return await self.control_device(kv=dat, api='updateSettings')
+
+    async def control_device(self, api='controlDevice', **kwargs):
         typ = self.device_type
-        api = f'{typ}/controlDevice'
+        api = f'{typ}/{api}'
         pms = {
             'id': self.device_id,
             **kwargs,
@@ -761,10 +787,10 @@ class LitterDevice(PetkitDevice):
         rdt = await self.account.request(api, pms)
         eno = rdt.get('error', {}).get('code', 0)
         if eno:
-            _LOGGER.error('Petkit device control failed: %s', rdt)
+            _LOGGER.error('Petkit device control failed: %s', [pms, rdt])
             return False
         await self.update_device_detail()
-        _LOGGER.info('Petkit device control: %s', rdt)
+        _LOGGER.info('Petkit device control: %s', [pms, rdt])
         return rdt
 
 
