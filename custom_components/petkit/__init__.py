@@ -254,7 +254,7 @@ class DevicesCoordinator(DataUpdateCoordinator):
             else:
                 if typ.lower() in ['p3']:
                     dvc = FitDevice(dat, self)
-                elif typ.lower() in ['t3']:
+                elif typ.lower() in ['t3', 't4']:
                     dvc = LitterDevice(dat, self)
                 else:
                     dvc = FeederDevice(dat, self)
