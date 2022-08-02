@@ -15,7 +15,9 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
 import homeassistant.helpers.config_validation as cv
-from aiohttp.client_exceptions import ClientConnectorError, ContentTypeError
+
+from asyncio import TimeoutError
+from aiohttp import ClientConnectorError, ContentTypeError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -143,7 +145,7 @@ class PetkitAccount:
         method = method.upper()
         url = self.api_url(api)
         kws = {
-            'timeout': 20,
+            'timeout': 30,
             'headers': {
                 'User-Agent': 'okhttp/3.12.1',
                 'X-Api-Version': '7.29.1',
@@ -163,7 +165,7 @@ class PetkitAccount:
         try:
             req = await self.http.request(method, url, **kws)
             return await req.json() or {}
-        except (ClientConnectorError, ContentTypeError) as exc:
+        except (ClientConnectorError, ContentTypeError, TimeoutError) as exc:
             lgs = [method, url, pms, exc]
             if req:
                 lgs.extend([req.status, req.content])
