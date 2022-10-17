@@ -712,6 +712,8 @@ class LitterDevice(PetkitDevice):
         pms = {
             'deviceId': self.device_id,
         }
+        if self.device_type == 't4':
+            pms['date'] = datetime.datetime.today().strftime('%Y%m%d')
         rsp = None
         try:
             rsp = await self.account.request(api, pms)
