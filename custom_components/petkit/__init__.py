@@ -758,7 +758,7 @@ class LitterDevice(PetkitDevice):
             'end':       ['end', self.work_mode],
             'continue':  ['continue', self.work_mode],
             'deodorize': ['start', 2],
-            'maintain': ['start', 9],
+            'maintain':  ['start', 9],
         }
 
     async def select_action(self, action, **kwargs):
