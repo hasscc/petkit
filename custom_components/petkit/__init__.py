@@ -1,3 +1,4 @@
+
 """The component."""
 import logging
 import hashlib
@@ -596,28 +597,38 @@ class LitterDevice(PetkitDevice):
         return self.detail.get('inTimes')
 
     @property
-    def pet_weight(self):
-        evt = self.pet_weight_attrs()
-        return evt.get('petWeight')
+    def deodorant_leftdays(self):
+        return self.detail['state']['deodorantLeftDays']
 
-    def pet_weight_attrs(self):
-        return self.last_record_attrs(only_event=10)
+    @property
+    def pet_weight(self):
+        evt = self.last_record_attrs(only_event="petWeight")
+        return evt
+
+    @property
+    def litter_percent(self):
+        return self.last_record_attrs(only_event="litterPercent")
+
 
     @property
     def records(self):
         return self.detail.get('records') or []
-
+        
     @property
     def last_record(self):
         evt = self.last_record_attrs().get('eventType') or 0
+        #_LOGGER.warning('Log : on est dans le last record ' + str(evt))
         dic = {
             5: 'cleaned',
             6: 'dumped',
             7: 'reset',
             8: 'deodorized',
+            9: 'maintenance',
             10: 'occupied',
         }
         return dic.get(evt, evt)
+
+
 
     def last_record_attrs(self, only_event=None):
         rls = self.records
@@ -626,12 +637,22 @@ class LitterDevice(PetkitDevice):
         lst = rls[-1] or {}
         if only_event:
             rls.reverse()
-            for v in rls:
-                if only_event == v.get('eventType'):
-                    lst = v
-                    break
+            if 'content' in rls[0]: 
+                for v in rls:
+                    if only_event == "petWeight":
+                        if "petWeight" in v.get('content') :
+                            return v.get('content').get("petWeight")
+                    if only_event == "litterPercent":
+                        if "litterPercent" in v.get('content') :
+                            #_LOGGER.warning('Log : litterPercent ' + str(v.get('content').get('litterPercent')))
+                            return v.get('content').get("litterPercent")
+            else:
+                return {}
+        
+
         ctx = lst.pop('content', None) or {}
         return {**lst, **ctx}
+        
 
     @property
     def hass_sensor(self):
@@ -639,22 +660,31 @@ class LitterDevice(PetkitDevice):
             **super().hass_sensor,
             'sand_percent': {
                 'icon': 'mdi:percent-outline',
-                'state_attrs': self.sand_attrs,
+                'state_attrs': self.sand_attrs
+            },
+            'deodorant_leftdays': {
+                'icon': 'mdi:sand_lack',
+                'state_attrs': self.deodorant_leftdays
             },
             'liquid': {
                 'icon': 'mdi:water-percent',
-                'state_attrs': self.liquid_attrs,
+                'state_attrs': self.liquid_attrs
             },
             'pet_weight': {
                 'icon': 'mdi:weight',
-                'state_attrs': self.pet_weight_attrs,
+                'state_attrs': self.pet_weight
+            },
+            'litter_percent': {
+                'icon': 'mdi:percent-outline',
+                'state_attrs': self.litter_percent
             },
             'in_times': {
                 'icon': 'mdi:location-enter',
+                'state_attrs': self.in_times
             },
             'last_record': {
                 'icon': 'mdi:history',
-                'state_attrs': self.last_record_attrs,
+                'state_attrs': self.last_record_attrs
             },
         }
 
@@ -721,7 +751,7 @@ class LitterDevice(PetkitDevice):
         except (TypeError, ValueError):
             rdt = {}
         if not rdt:
-            _LOGGER.warning('Got petkit device records for %s failed: %s', self.device_name, rsp)
+            _LOGGER.warning('Got petkit device records for %s failed: %s ' + str(datetime.datetime.today().strftime('%Y%m%d')), self.device_name, rsp)
         self.detail['records'] = rdt
         return rdt
 
@@ -741,13 +771,15 @@ class LitterDevice(PetkitDevice):
 
     async def press_deodorize(self, **kwargs):
         return await self.select_action('deodorize')
+    
+    async def press_maintenance(self, **kwargs):
+        return await self.select_action('maintenance')
 
     @property
     def action(self):
         return {
             0: 'cleanup',
             2: 'deodorize',
-            9: 'maintain',
         }.get(self.work_mode, None)
 
     @property
@@ -758,7 +790,7 @@ class LitterDevice(PetkitDevice):
             'end':       ['end', self.work_mode],
             'continue':  ['continue', self.work_mode],
             'deodorize': ['start', 2],
-            'maintain':  ['start', 9],
+            'maintenance': ['start', 9]
         }
 
     async def select_action(self, action, **kwargs):
