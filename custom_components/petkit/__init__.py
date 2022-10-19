@@ -616,7 +616,6 @@ class LitterDevice(PetkitDevice):
     @property
     def last_record(self):
         evt = self.last_record_attrs().get('eventType') or 0
-        #_LOGGER.warning('Log : on est dans le last record ' + str(evt))
         dic = {
             5: 'cleaned',
             6: 'dumped',
@@ -748,7 +747,7 @@ class LitterDevice(PetkitDevice):
         except (TypeError, ValueError):
             rdt = {}
         if not rdt:
-            _LOGGER.warning('Got petkit device records for %s failed: %s ' + str(datetime.datetime.today().strftime('%Y%m%d')), self.device_name, rsp)
+            _LOGGER.warning('Got petkit device records for %s failed: %s', self.device_name, rsp)
         self.detail['records'] = rdt
         return rdt
 
@@ -777,6 +776,7 @@ class LitterDevice(PetkitDevice):
         return {
             0: 'cleanup',
             2: 'deodorize',
+            9: 'maintain',
         }.get(self.work_mode, None)
 
     @property
@@ -787,7 +787,7 @@ class LitterDevice(PetkitDevice):
             'end':       ['end', self.work_mode],
             'continue':  ['continue', self.work_mode],
             'deodorize': ['start', 2],
-            'maintenance': ['start', 9]
+            'maintain':  ['start', 9]
         }
 
     async def select_action(self, action, **kwargs):
