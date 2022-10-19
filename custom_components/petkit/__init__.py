@@ -601,12 +601,19 @@ class LitterDevice(PetkitDevice):
 
     @property
     def pet_weight(self):
-        evt = self.last_record_attrs(only_event="petWeight")
-        return evt
+        evt = self.pet_weight_attrs()
+        return evt.get('petWeight')
+
+    def pet_weight_attrs(self):
+        return self.last_record_attrs(only_event='petWeight')
 
     @property
     def litter_percent(self):
-        return self.last_record_attrs(only_event="litterPercent")
+        evt = self.litter_percent_attrs()
+        return evt.get('litterPercent')
+
+    def litter_percent_attrs(self):
+        return self.last_record_attrs(only_event='litterPercent')
 
 
     @property
@@ -633,19 +640,15 @@ class LitterDevice(PetkitDevice):
         lst = rls[-1] or {}
         if only_event:
             rls.reverse()
-            if 'content' in rls[0]: 
-                for v in rls:
-                    if only_event == "petWeight":
-                        if "petWeight" in v.get('content') :
-                            return v.get('content').get("petWeight")
-                    if only_event == "litterPercent":
-                        if "litterPercent" in v.get('content') :
-                            #_LOGGER.warning('Log : litterPercent ' + str(v.get('content').get('litterPercent')))
-                            return v.get('content').get("litterPercent")
-            else:
-                return {}
-        
-
+            for v in rls:
+                lst = {}
+                if only_event == v.get('eventType'):
+                    lst = v
+                ctx = lst.get('content', None) or {}
+                if only_event in ctx:
+                    lst = v
+                if lst:
+                    break
         ctx = lst.pop('content', None) or {}
         return {**lst, **ctx}
         
@@ -668,11 +671,11 @@ class LitterDevice(PetkitDevice):
             },
             'pet_weight': {
                 'icon': 'mdi:weight',
-                'state_attrs': self.pet_weight,
+                'state_attrs': self.pet_weight_attrs,
             },
             'litter_percent': {
                 'icon': 'mdi:percent-outline',
-                'state_attrs': self.litter_percent,
+                'state_attrs': self.litter_percent_attrs,
             },
             'in_times': {
                 'icon': 'mdi:location-enter',
