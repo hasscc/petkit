@@ -1,4 +1,3 @@
-
 """The component."""
 import logging
 import hashlib
@@ -613,7 +612,7 @@ class LitterDevice(PetkitDevice):
     @property
     def records(self):
         return self.detail.get('records') or []
-        
+
     @property
     def last_record(self):
         evt = self.last_record_attrs().get('eventType') or 0
@@ -627,8 +626,6 @@ class LitterDevice(PetkitDevice):
             10: 'occupied',
         }
         return dic.get(evt, evt)
-
-
 
     def last_record_attrs(self, only_event=None):
         rls = self.records
@@ -660,31 +657,31 @@ class LitterDevice(PetkitDevice):
             **super().hass_sensor,
             'sand_percent': {
                 'icon': 'mdi:percent-outline',
-                'state_attrs': self.sand_attrs
+                'state_attrs': self.sand_attrs,
             },
             'deodorant_leftdays': {
                 'icon': 'mdi:sand_lack',
-                'state_attrs': self.deodorant_leftdays
+                'state_attrs': self.deodorant_leftdays,
             },
             'liquid': {
                 'icon': 'mdi:water-percent',
-                'state_attrs': self.liquid_attrs
+                'state_attrs': self.liquid_attrs,
             },
             'pet_weight': {
                 'icon': 'mdi:weight',
-                'state_attrs': self.pet_weight
+                'state_attrs': self.pet_weight,
             },
             'litter_percent': {
                 'icon': 'mdi:percent-outline',
-                'state_attrs': self.litter_percent
+                'state_attrs': self.litter_percent,
             },
             'in_times': {
                 'icon': 'mdi:location-enter',
-                'state_attrs': self.in_times
+                'state_attrs': self.in_times,
             },
             'last_record': {
                 'icon': 'mdi:history',
-                'state_attrs': self.last_record_attrs
+                'state_attrs': self.last_record_attrs,
             },
         }
 
