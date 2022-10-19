@@ -597,7 +597,7 @@ class LitterDevice(PetkitDevice):
 
     @property
     def deodorant_leftdays(self):
-        return self.detail['state']['deodorantLeftDays']
+        return self.detail.get('state', {}).get('deodorantLeftDays')
 
     @property
     def pet_weight(self):
@@ -768,8 +768,8 @@ class LitterDevice(PetkitDevice):
     async def press_deodorize(self, **kwargs):
         return await self.select_action('deodorize')
     
-    async def press_maintenance(self, **kwargs):
-        return await self.select_action('maintenance')
+    async def press_maintain(self, **kwargs):
+        return await self.select_action('maintain')
 
     @property
     def action(self):
@@ -787,7 +787,7 @@ class LitterDevice(PetkitDevice):
             'end':       ['end', self.work_mode],
             'continue':  ['continue', self.work_mode],
             'deodorize': ['start', 2],
-            'maintain':  ['start', 9]
+            'maintain':  ['start', 9],
         }
 
     async def select_action(self, action, **kwargs):
