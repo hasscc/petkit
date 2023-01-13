@@ -1,4 +1,5 @@
 """The component."""
+import copy
 import logging
 import hashlib
 import datetime
@@ -620,14 +621,14 @@ class LitterDevice(PetkitDevice):
         return dic.get(evt, evt)
 
     def last_record_attrs(self, only_event=None):
-        rls = self.records
+        rls = copy.deepcopy(self.records)
         if not rls:
             return {}
         lst = rls[-1] or {}
         if only_event:
             rls.reverse()
             for v in rls:
-                if only_event == v.get('eventType'):
+                if only_event == v.get('eventType') and v.get('content'):
                     lst = v
                     break
         ctx = lst.pop('content', None) or {}
