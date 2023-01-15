@@ -490,7 +490,7 @@ class FeederDevice(PetkitDevice):
                     'state_attrs': self.feed_state_attrs,
                 },
                 'feed_amount': {
-                    'unit': 'g',
+                    'unit': MASS_GRAMS,
                     'icon': 'mdi:weight-gram',
                     'state_attrs': self.feed_state_attrs,
                 },
@@ -498,7 +498,7 @@ class FeederDevice(PetkitDevice):
         if self.device_type == 'd3':
             dat.update({
                 'eat_amount': {
-                    'unit': 'g',
+                    'unit': MASS_GRAMS,
                     'icon': 'mdi:weight-gram',
                 },
                 'eat_times': {
@@ -506,7 +506,7 @@ class FeederDevice(PetkitDevice):
                     'icon': 'mdi:counter',
                 },
                 'bowl_weight': {
-                    'unit': 'g',
+                    'unit': MASS_GRAMS,
                     'icon': 'mdi:weight-gram',
                 },
             })
@@ -641,17 +641,21 @@ class LitterDevice(PetkitDevice):
             'sand_percent': {
                 'icon': 'mdi:percent-outline',
                 'state_attrs': self.sand_attrs,
+                'unit': PERCENTAGE,
             },
             'liquid': {
                 'icon': 'mdi:water-percent',
                 'state_attrs': self.liquid_attrs,
+                'unit': PERCENTAGE,
             },
             'pet_weight': {
                 'icon': 'mdi:weight',
                 'state_attrs': self.pet_weight_attrs,
+                'unit': MASS_GRAMS,
             },
             'in_times': {
                 'icon': 'mdi:location-enter',
+                'unit': 'times',
             },
             'last_record': {
                 'icon': 'mdi:history',
@@ -917,6 +921,10 @@ class PetkitEntity(CoordinatorEntity):
     @property
     def state(self):
         return self._attr_state
+
+    @property
+    def unit_of_measurement(self):
+        return self._attr_unit_of_measurement
 
     async def async_request_api(self, api, params=None, method='GET', **kwargs):
         throw = kwargs.pop('throw', None)
