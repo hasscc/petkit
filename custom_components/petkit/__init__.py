@@ -877,6 +877,40 @@ class FitDevice(PetkitDevice):
         return rdt
 
 
+class W5Device(PetkitDevice):
+    @property
+    def state(self):
+        dat = self.data or {}
+        if dat.get('lackWarning'):
+            return 'water_lack'
+        if dat.get('breakdownWarning'):
+            return 'breakdown'
+        if dat.get('runStatus'):
+            return 'working'
+        if dat.get('powerStatus'):
+            return 'idle'
+        return None
+
+    def state_attrs(self):
+        return self.data
+
+    @property
+    def filter_level(self):
+        return self.data.get('filterPercent')
+
+    @property
+    def filter_days(self):
+        return self.data.get('filterExpectedDays')
+
+    @property
+    def hass_sensor(self):
+        return {
+            **super().hass_sensor,
+            'filter_level': {},
+            'filter_days': {},
+        }
+
+
 class PetkitEntity(CoordinatorEntity):
     def __init__(self, name, device: PetkitDevice, option=None):
         self.coordinator = device.coordinator
