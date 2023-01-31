@@ -249,16 +249,19 @@ class DevicesCoordinator(DataUpdateCoordinator):
             did = dat.get('id')
             if not did:
                 continue
-            typ = dat['type'] = dvc.get('type') or ''
+            dat['type'] = dvc.get('type') or ''
             old = self.hass.data[DOMAIN][CONF_DEVICES].get(did)
             if old:
                 dvc = old
                 dvc.update_data(dat)
             else:
-                if typ.lower() in ['p3']:
+                typ = dat['type'].lower()
+                if typ in ['p3']:
                     dvc = FitDevice(dat, self)
-                elif typ.lower() in ['t3', 't4']:
+                elif typ in ['t3', 't4']:
                     dvc = LitterDevice(dat, self)
+                elif typ in ['w5']:
+                    dvc = W5Device(dat, self)
                 else:
                     dvc = FeederDevice(dat, self)
                 self.hass.data[DOMAIN][CONF_DEVICES][did] = dvc
