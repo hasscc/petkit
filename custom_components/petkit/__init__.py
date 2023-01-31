@@ -162,6 +162,7 @@ class PetkitAccount:
             kws['params'] = pms
         else:
             kws['data'] = pms
+            kws['headers']['Content-Type'] = 'application/x-www-form-urlencoded'
         req = None
         try:
             req = await self.http.request(method, url, **kws)
