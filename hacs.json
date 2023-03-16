@@ -1,4 +1,8 @@
 {
   "name": "Petkit",
-  "render_readme": true
+  "content_in_root": false,
+  "zip_release": true,
+  "filename": "petkit.zip",
+  "render_readme": true,
+  "homeassistant": "2022.2.0"
 }
