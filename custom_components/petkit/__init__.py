@@ -460,7 +460,10 @@ class FeederDevice(PetkitDevice):
 
     @property
     def feeding_amount(self):
-        num = self.account.get_config(CONF_FEEDING_AMOUNT)
+        return self.get_feeding_amount()
+
+    def get_feeding_amount(self, index=''):
+        num = self.account.get_config(f'{CONF_FEEDING_AMOUNT}{index}')
         eid = f'{num}'
         if 'input_number.' in eid:
             sta = self.account.hass.states.get(eid)
@@ -473,10 +476,17 @@ class FeederDevice(PetkitDevice):
         return num
 
     def feeding_attrs(self):
+        ext = {}
+        if self.device_type in ['d4s']:
+            ext.update({
+                'feeding_amount1': self.get_feeding_amount('1'),
+                'feeding_amount2': self.get_feeding_amount('2'),
+            })
         return {
             'feeding_amount': self.feeding_amount,
             'desc': self.data.get('desc'),
             'error': self.status.get('errorMsg'),
+            **ext,
             **self.feed_state_attrs(),
         }
 
@@ -543,14 +553,19 @@ class FeederDevice(PetkitDevice):
         api = 'feeder/save_dailyfeed'
         if typ == 'feedermini':
             api = 'feedermini/save_dailyfeed'
-        elif typ in ['d3', 'd4']:
+        elif typ in ['d3', 'd4', 'd4s']:
             api = f'{typ}/saveDailyFeed'
         pms = {
             'deviceId': self.device_id,
             'day': datetime.datetime.today().strftime('%Y%m%d'),
             'time': -1,
-            'amount': self.feeding_amount,
+            'amount': kwargs.get('amount', self.feeding_amount),
         }
+        if typ in ['d4s']:
+            pms.update({
+                'amount1': kwargs.get('amount1', self.get_feeding_amount('1')),
+                'amount2': kwargs.get('amount2', self.get_feeding_amount('2')),
+            })
         rdt = await self.account.request(api, pms)
         eno = rdt.get('error', {}).get('code', 0)
         if eno:
