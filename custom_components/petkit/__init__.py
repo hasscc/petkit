@@ -436,7 +436,10 @@ class FeederDevice(PetkitDevice):
 
     @property
     def feed_amount(self):
-        return self.feed_state_attrs().get('realAmountTotal', 0)
+        fas = self.feed_state_attrs()
+        if self.device_type == 'd4s':
+            return fas.get('realAmountTotal1', 0) + fas.get('realAmountTotal2', 0)
+        return fas.get('realAmountTotal', 0)
 
     def feed_state_attrs(self):
         return self.detail.get('state', {}).get('feedState') or {}
@@ -473,6 +476,8 @@ class FeederDevice(PetkitDevice):
             num = int(float(num))
         except (TypeError, ValueError):
             num = 10
+            if self.device_type in ['d4s']:
+                num = 1
         return num
 
     def feeding_attrs(self):
