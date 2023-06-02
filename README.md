@@ -16,7 +16,7 @@ After installing, confirm that the `custom_components/petkit` folder exists in y
 ## Config
 
 > It is recommended to use another account credentials for this integration.
-  Add the following to your `configuration.yaml`:
+> Add the following to your `configuration.yaml`:
 
 ```yaml
 # configuration.yaml
