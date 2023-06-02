@@ -41,7 +41,7 @@ petkit:
       feeding_amount: input_number.your_feeding_amount_entity_id # min:10, step:10
 ```
 
-For a simple test to ensure integration added correctly, the following works as well:
+> For a simple test to ensure integration added correctly, the following works as well:
 
 ```yaml
 # configuration.yaml
@@ -53,7 +53,7 @@ petkit:
   api_base: http://api.petkt.com/latest/     # America server - this can be changed to any other server
 ```
 
-To check if integration successful:
+> To check if integration successful:
 1. Go to `Settings -> Devices & Services -> Entities` 
 2. Search for `petkit` (you should see new entities with Integration label `Petkit`)
 
