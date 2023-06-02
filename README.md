@@ -15,7 +15,8 @@ After installing, confirm that the `custom_components/petkit` folder exists in y
 
 ## Config
 
-> It is recommended to use another account credentials for this integration.
+> It is recommended to use another account credentials for this integration. 
+> 
 > Add the following to your `configuration.yaml`:
 
 ```yaml
@@ -54,25 +55,24 @@ petkit:
 ```
 
 > To check if integration successful:
-1. Go to `Settings -> Devices & Services -> Entities` 
-2. Search for `petkit` (you should see new entities with Integration label `Petkit`)
+>> 1. Go to `Settings -> Devices & Services -> Entities` 
+>> 2. Search for `petkit` (you should see new entities with Integration label `Petkit`)
 
-If integration not successful:
-1. Check your `home-assistant.log` file
-2. Search for `petkit` in the file
-3. There should be an error message related to your issue
-4. Use Google translate
-
-Example error message:
-`2023-06-01 14:58:08.450 ERROR (MainThread) [custom_components.petkit] Petkit login email@domain.com failed: {'error': {'code': 125, 'msg': '手机号未注册'}}
-2023-06-01 14:58:08.501 WARNING (MainThread) [custom_components.petkit] Got petkit devices for email@domain.com failed: {'error': {'code': 5, 'msg': '登录会话过期，请重新登录'}}
-`
+> If integration not successful:
+>> 1. Check your `home-assistant.log` file
+>> 2. Search for `petkit` in the file
+>> 3. There should be an error message related to your issue
+>> 4. Use Google translate
+>
+> Example error message:
+> `2023-06-01 14:58:08.450 ERROR (MainThread) [custom_components.petkit] Petkit login email@domain.com failed: {'error': {'code': 125, 'msg': '手机号未注册'}}
+> 2023-06-01 14:58:08.501 WARNING (MainThread) [custom_components.petkit] Got petkit devices for email@domain.com failed: {'error': {'code': 5, 'msg': '登录会话
+> 期，请重新登录'}}`
 
 ## Services
 
-Add the following to your `configuration.yaml`:
-
 #### Request Petkit API
+> Add the following to your `configuration.yaml`:
 ```yaml
 service: petkit.request_api
 target:
@@ -83,7 +83,7 @@ data:
     key: val
 ```
 
-For reference, your `configuration.yaml` should look like this (or similar):
+> For reference, your `configuration.yaml` should look like this (or similar):
 
 ```yaml
 petkit:
