@@ -13,6 +13,7 @@ wget -q -O - https://cdn.jsdelivr.net/gh/al-one/hass-xiaomi-miot/install.sh | DO
 
 After installing, confirm that the `custom_components/petkit` folder exists in your HomeAssistant config folder.
 
+
 ## Config
 
 > It is recommended to use another account credentials for this integration. 
@@ -65,35 +66,17 @@ petkit:
 >> 4. Use Google translate
 >
 > Example error message:
-> `2023-06-01 14:58:08.450 ERROR (MainThread) [custom_components.petkit] Petkit login email@domain.com failed: {'error': {'code': 125, 'msg': '手机号未注册'}}
-> 2023-06-01 14:58:08.501 WARNING (MainThread) [custom_components.petkit] Got petkit devices for email@domain.com failed: {'error': {'code': 5, 'msg': '登录会话
-> 期，请重新登录'}}`
+> - `2023-06-01 14:58:08.450 ERROR (MainThread) [custom_components.petkit] Petkit login email@domain.com failed: {'error': {'code': 125, 'msg': '手机号未注册'}}`
+> - `2023-06-01 14:58:08.501 WARNING (MainThread) [custom_components.petkit] Got petkit devices for email@domain.com failed: {'error': {'code': 5, 'msg': '登录会话期，请重新登录'}}`
+
 
 ## Services
 
-#### Request Petkit API
-> Add the following to your `configuration.yaml`:
+#### [Request Petkit API](https://my.home-assistant.io/redirect/developer_call_service/?service=petkit.request_api)
 ```yaml
 service: petkit.request_api
 target:
   entity_id: sensor.d4_xxxxxx_state # Any sensor entity in the account: the Petkit sensor entity ID shown in Settings -> Devices & Services -> Entities
-data:
-  api: /discovery/device_roster
-  params:
-    key: val
-```
-
-> For reference, your `configuration.yaml` should look like this (or similar):
-
-```yaml
-petkit:
-  username: email@domain.com
-  password: your_password 
-  api_base: http://api.petkt.com/latest/
-
-service: petkit.request_api
-target:
-  entity_id: sensor.d4_xxxxxx_state
 data:
   api: /discovery/device_roster
   params:
