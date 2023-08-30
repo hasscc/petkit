@@ -1,5 +1,9 @@
 # Petkit for HomeAssistant
 
+> ⚠️ I don't have more time to maintain this repo, [`RobertD502/home-assistant-petkit`](https://github.com/RobertD502/home-assistant-petkit) is a better integration, please switch to it.
+
+------
+
 ## Installing
 
 > [Download](https://github.com/hasscc/petkit/archive/main.zip) and copy `custom_components/petkit` folder to `custom_components` folder in your HomeAssistant config folder
